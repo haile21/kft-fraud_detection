@@ -1,23 +1,15 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List
 
 from database import engine, SessionLocal
 from models import Base, Rule
-from schemas import (
-    TransactionRequest,
-    FraudResponse,
-    IdentityCreate,
-    RuleCreate,
-    RuleUpdate,
-    RuleResponse,
-)
-from services.fraud_orchestrator import assess_fraud_risk
-from services.identity_manager import create_identity, dedup_identity
+from routers import nid_router, identity_router, transaction_router, rules_router, loan_router
+from seed_data import seed_dummy_data
 
 
-# Create tables (DEV ONLY – use Alembic in production)
+# Create tables (DEV )
 Base.metadata.create_all(bind=engine)
 
 # Initial rules data
@@ -29,6 +21,8 @@ INITIAL_RULES = [
     {"name": "Multiple Reapplies (>2/day)", "description": "Fraud if applicant reapplies >2 times/day with altered financial data", "condition_type": "excessive_reapply"},
     {"name": "TIN Name Mismatch", "description": "Fraud if TIN is registered under different name", "condition_type": "tin_mismatch"},
     {"name": "NID KYC Mismatch", "description": "Fraud if NID was previously registered with different KYC", "condition_type": "nid_kyc_mismatch"},
+    {"name": "NID Expired", "description": "Fraud if NID has expired", "condition_type": "nid_expired"},
+    {"name": "NID Suspended", "description": "Fraud if NID is suspended", "condition_type": "nid_suspended"},
 ]
 
 def seed_initial_rules(db: Session):
@@ -42,86 +36,92 @@ def seed_initial_rules(db: Session):
 # Lifespan manager for startup/shutdown events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: seed rules
+    # Startup: seed rules and dummy data
     db = SessionLocal()
     try:
         seed_initial_rules(db)
+        # Seed dummy data for development
+        print("Seeding dummy data for test")
+        seed_dummy_data()
     finally:
         db.close()
     yield
     # Shutdown: nothing to do here for now
 
 # Create FastAPI app with lifespan
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Fraud Management System API",
+    description="""
+    ## Fraud Management System
+    
+    A comprehensive fraud detection system that combines static rules with NID verification and TIN validation.
+    
+    ### Key Features:
+    - **NID Verification** - National ID validation with government database simulation
+    - **TIN Verification** - Real-time TIN validation with eTrade API
+    - **Fraud Detection** - 9 static rules for comprehensive fraud detection
+    - **Loan Management** - Complete loan application and management system
+    - **Identity Management** - User identity verification and KYC
+    
+    ###  Available Endpoints:
+    - **NID** (`/nid/`) - National ID verification and validation
+    - **Identity** (`/identity/`) - User identity management
+    - **Transaction** (`/transaction/`) - Fraud detection for transactions
+    - **Rules** (`/rules/`) - Fraud detection rule management
+    - **Loans** (`/loans/`) - Loan application and management
+    
+    ###  Getting Started:
+    1. **Verify NID**: Use `/nid/verify/` to verify national IDs
+    2. **Create Identity**: Use `/identity/` to register users
+    3. **Check Transaction**: Use `/transaction/` for fraud detection
+    4. **Manage Loans**: Use `/loans/` for loan operations
+    
+    ### Development:
+    - **Swagger UI**: Available at `/docs`
+    - **ReDoc**: Available at `/redoc`
+    - **OpenAPI JSON**: Available at `/openapi.json`
+    """,
+    version="1.0.0",
+    contact={
+        "name": "Fraud Management Team",
+        "email": "hweleslassie@kifiya.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    lifespan=lifespan
+)
 
+# Add CORS middleware
 app.add_middleware(
-    #CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    CORSMiddleware,
+    allow_origins=["*"],  # ["http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Include routers
+app.include_router(nid_router)
+app.include_router(identity_router)
+app.include_router(transaction_router)
+app.include_router(rules_router)
+app.include_router(loan_router)
 
-# --- Identity Endpoints ---
-@app.post("/identity/")
-def register_identity(identity: IdentityCreate, db: Session = Depends(get_db)):
-    existing = dedup_identity(db, identity.national_id)
-    if existing:
-        return {"message": "Identity already exists", "id": existing.id}
-    new_identity = create_identity(db, identity.dict())
-    return {"message": "Identity created", "id": new_identity.id}
-
-# --- Transaction Endpoint ---
-@app.post("/transaction/", response_model=FraudResponse)
-def check_transaction(
-    request: TransactionRequest,
-    national_id: str,
-    db: Session = Depends(get_db)
-):
-    is_fraud, reason, risk_score = assess_fraud_risk(
-        db, request.user_id, request.amount, request.ip_address, national_id
-    )
-    if is_fraud:
-        raise HTTPException(status_code=403, detail=reason)
-    return {"is_fraud": False, "reason": reason, "risk_score": risk_score}
-
-# --- Rule Management Endpoints ---
-@app.post("/rules/", response_model=RuleResponse)
-def create_rule(rule: RuleCreate, db: Session = Depends(get_db)):
-    db_rule = Rule(**rule.dict())
-    db.add(db_rule)
-    db.commit()
-    db.refresh(db_rule)
-    return db_rule
-
-@app.get("/rules/", response_model=List[RuleResponse])
-def list_rules(db: Session = Depends(get_db)):
-    return db.query(Rule).all()
-
-@app.put("/rules/{rule_id}", response_model=RuleResponse)
-def update_rule(rule_id: int, rule_update: RuleUpdate, db: Session = Depends(get_db)):
-    db_rule = db.query(Rule).filter(Rule.id == rule_id).first()
-    if not db_rule:
-        raise HTTPException(status_code=404, detail="Rule not found")
-    for key, value in rule_update.dict(exclude_unset=True).items():
-        setattr(db_rule, key, value)
-    db.commit()
-    db.refresh(db_rule)
-    return db_rule
-
-@app.delete("/rules/{rule_id}")
-def delete_rule(rule_id: int, db: Session = Depends(get_db)):
-    db_rule = db.query(Rule).filter(Rule.id == rule_id).first()
-    if not db_rule:
-        raise HTTPException(status_code=404, detail="Rule not found")
-    db.delete(db_rule)
-    db.commit()
-    return {"message": "Rule deleted"}
+# Root endpoint
+@app.get("/")
+def root():
+    """Root endpoint with API information"""
+    return {
+        "message": "Fraud Management System API",
+        "version": "1.0.0",
+        "endpoints": {
+            "nid": "/nid/",
+            "identity": "/identity/",
+            "transaction": "/transaction/",
+            "rules": "/rules/",
+            "loans": "/loans/",
+            "docs": "/docs"
+        }
+    }

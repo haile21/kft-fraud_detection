@@ -1,9 +1,9 @@
 # services/fraud_orchestrator.py
 from sqlalchemy.orm import Session
 from .rule_engine import evaluate_rules
-from .anomaly_detector import is_anomalous
+# from .anomaly_detector import is_anomalous  # Commented out for now
 from .identity_manager import get_identity_by_national_id, is_blacklisted
-from ..models import FraudLog
+from models import FraudLog
 
 def assess_fraud_risk(db: Session, user_id: int, amount: float, ip_address: str, national_id: str):
     reasons = []
@@ -17,16 +17,29 @@ def assess_fraud_risk(db: Session, user_id: int, amount: float, ip_address: str,
         return True, "National ID blacklisted", 1.0
 
     # 2. Apply rule engine
-    # rule_fraud, rule_reason = check_rules(user_id, amount, ip_address)
-
+    # Get identity details for NID-specific checks
+    identity = get_identity_by_national_id(db, national_id)
+    nid_expired = False
+    nid_suspended = False
+    
+    if identity:
+        # Check if NID is expired
+        if identity.nid_status == 'expired':
+            nid_expired = True
+        # Check if NID is suspended
+        elif identity.nid_status == 'suspended':
+            nid_suspended = True
+    
     context = {
-        "has_active_loan": False,  # ← You’ll compute this from your loan system
+        "has_active_loan": False,  # ← You'll compute this from your loan system
         "is_phone_changed_with_same_name": False,
         "applied_within_24h_after_close": False,
         "matches_fraud_db": False,
         "reapply_count_today": 0,
         "tin_name_mismatch": False,
         "nid_kyc_mismatch": False,
+        "nid_expired": nid_expired,
+        "nid_suspended": nid_suspended,
         # Add more as needed
     }
 
@@ -34,17 +47,16 @@ def assess_fraud_risk(db: Session, user_id: int, amount: float, ip_address: str,
     if rule_fraud:
         reasons.append(rule_reason)
 
-    # 3. Apply anomaly detection
-    if is_anomalous(amount):
-        reasons.append("Unusual transaction amount")
+    # 3. Apply anomaly detection (commented out for now)
+    # if is_anomalous(amount):
+    #     reasons.append("Unusual transaction amount")
 
-    # 4. Compute risk score (simple heuristic)
+    # 4. Compute risk score (rule-based only for now)
     risk_score = 0.0
-    if "Unusual" in str(reasons):
-        risk_score += 0.6
     if rule_fraud:
-        risk_score += 0.5
-    risk_score = min(risk_score, 1.0)
+        risk_score = 1.0  # High risk if any rule triggers
+    else:
+        risk_score = 0.0  # Low risk if no rules trigger
 
     is_fraud = len(reasons) > 0
 

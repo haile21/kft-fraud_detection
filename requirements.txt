@@ -6,3 +6,5 @@ scikit-learn
 numpy
 python-dotenv #We use python-dotenv to manage secrets
 psycopg2-binary
+fuzzywuzzy[speedup] # Fuzzy string matching for name verification
+requests # HTTP client for external API calls

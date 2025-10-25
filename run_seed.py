@@ -13,6 +13,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from seed_data import seed_dummy_data
 
 if __name__ == "__main__":
-    print("🌱 Starting database seeding...")
+    print("Starting database seeding...")
     seed_dummy_data()
-    print("🎉 Seeding completed!")
+    print("Seeding completed!")

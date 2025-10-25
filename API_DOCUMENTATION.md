@@ -1,10 +1,10 @@
 # 🏦 Fraud Management System API Documentation
 
-## 📋 Overview
+##  Overview
 
 The Fraud Management System API provides comprehensive fraud detection capabilities with NID verification, TIN validation, and loan management.
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Base URL
 ```
@@ -21,7 +21,7 @@ http://localhost:8000/docs
 http://localhost:8000/redoc
 ```
 
-## 🔗 API Endpoints
+##  API Endpoints
 
 ### 🆔 NID Verification (`/nid/`)
 
@@ -75,7 +75,7 @@ Register new identity with NID verification
 #### `GET /identity/{national_id}`
 Get identity details by national ID
 
-### 🛡️ Transaction Fraud Detection (`/transaction/`)
+###  Transaction Fraud Detection (`/transaction/`)
 
 #### `POST /transaction/`
 Check transaction for fraud
@@ -90,7 +90,7 @@ Check transaction for fraud
 #### `GET /transaction/history/{user_id}`
 Get transaction history for a user
 
-### 📝 Loan Management (`/loans/`)
+###  Loan Management (`/loans/`)
 
 #### `POST /loans/applications/`
 Create loan application
@@ -120,7 +120,7 @@ Get user's loans
 #### `GET /loans/user/{user_id}/active`
 Get active loans for user
 
-### ⚙️ Rule Management (`/rules/`)
+###  Rule Management (`/rules/`)
 
 #### `GET /rules/`
 List all fraud detection rules
@@ -137,7 +137,7 @@ Delete fraud detection rule
 #### `PATCH /rules/{rule_id}/toggle`
 Toggle rule active/inactive status
 
-## 🔍 Fraud Detection Rules
+##  Fraud Detection Rules
 
 The system uses 9 static rules for fraud detection:
 
@@ -151,7 +151,7 @@ The system uses 9 static rules for fraud detection:
 8. **NID Expired** - Flag expired NIDs
 9. **NID Suspended** - Flag suspended NIDs
 
-## 📊 Response Examples
+##  Response Examples
 
 ### Successful NID Verification
 ```json
@@ -186,7 +186,7 @@ The system uses 9 static rules for fraud detection:
 }
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Test Data Available
 The system comes with pre-seeded test data:
@@ -205,7 +205,7 @@ The system comes with pre-seeded test data:
 - ✅ Excessive reapply detection
 - ✅ Active loan detection
 
-## 🔧 Development
+##  Development
 
 ### Running the API
 ```bash
@@ -222,7 +222,7 @@ python run_seed.py
 - **ReDoc**: `http://localhost:8000/redoc`
 - **OpenAPI JSON**: `http://localhost:8000/openapi.json`
 
-## 📝 Error Handling
+## Error Handling
 
 The API returns appropriate HTTP status codes:
 

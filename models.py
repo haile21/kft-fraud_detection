@@ -10,10 +10,10 @@ class User(Base):
     password = Column(String)
     first_name = Column(String)
     last_name = Column(String)
-    gender = Column(String)
-    tin_number = Column(String)
-    phone_number = Column(String)
-    national_id = Column(String)
+    gender = Column(String, nullable=True)
+    tin_number = Column(String, nullable=True)
+    phone_number = Column(String, nullable=True)
+    national_id = Column(String, nullable=True)
 
 class Identity(Base):
     __tablename__ = "identities"
@@ -92,5 +92,52 @@ class LoanApplication(Base):
     rejection_reason = Column(String, nullable=True)
     ip_address = Column(String)
     user_agent = Column(String)
+
+class Alert(Base):
+    __tablename__ = "alerts"
+    id = Column(Integer, primary_key=True, index=True)
+    fraud_log_id = Column(Integer, index=True)  # Links to FraudLog
+    user_id = Column(Integer, index=True)
+    alert_type = Column(String)  # transaction_fraud, identity_fraud, etc.
+    severity = Column(String, default='medium')  # low, medium, high, critical
+    status = Column(String, default='open')  # open, assigned, investigating, resolved, closed
+    assigned_to = Column(Integer, nullable=True)  # User ID of assigned analyst
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    description = Column(Text)
+    fraud_reason = Column(Text)
+    risk_score = Column(Float)
+
+class Case(Base):
+    __tablename__ = "cases"
+    id = Column(Integer, primary_key=True, index=True)
+    alert_id = Column(Integer, index=True)  # Links to Alert
+    case_number = Column(String, unique=True, index=True)  # Auto-generated case number
+    title = Column(String)
+    description = Column(Text)
+    status = Column(String, default='open')  # open, investigating, resolved, closed
+    priority = Column(String, default='medium')  # low, medium, high, urgent
+    assigned_to = Column(Integer, nullable=True)  # User ID of assigned analyst
+    created_by = Column(Integer)  # User ID of creator (super admin)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    closed_at = Column(DateTime(timezone=True), nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+
+class CaseFollowUp(Base):
+    __tablename__ = "case_followups"
+    id = Column(Integer, primary_key=True, index=True)
+    case_id = Column(Integer, index=True)  # Links to Case
+    created_by = Column(Integer)  # User ID of creator
+    follow_up_type = Column(String)  # investigation, communication, resolution, etc.
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class UserRole(Base):
+    __tablename__ = "user_roles"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    role = Column(String)  # super_admin, fraud_analyst
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 Base.metadata.create_all(bind=engine)

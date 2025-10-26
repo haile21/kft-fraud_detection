@@ -18,10 +18,10 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/", response_model=RuleResponse)
+@router.post("", response_model=RuleResponse)
 def create_rule(rule: RuleCreate, db: Session = Depends(get_db)):
     """
-    🔧 Create New Fraud Detection Rule
+     Create New Fraud Detection Rule
     
     Creates a new dynamic fraud detection rule that will be applied to all transactions.
     
@@ -58,7 +58,7 @@ def create_rule(rule: RuleCreate, db: Session = Depends(get_db)):
     db.refresh(db_rule)
     return db_rule
 
-@router.get("/", response_model=List[RuleResponse])
+@router.get("", response_model=List[RuleResponse])
 def list_rules(db: Session = Depends(get_db)):
     """
     📋 List All Fraud Detection Rules

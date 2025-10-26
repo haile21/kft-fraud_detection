@@ -20,19 +20,19 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/verify/", response_model=NIDVerificationResponse)
+@router.post("/verify", response_model=NIDVerificationResponse)
 def verify_nid(request: NIDVerificationRequest, db: Session = Depends(get_db)):
     """
-    🔍 Verify NID with Government Database
+     Verify NID with Government Database
     
     Verifies a National ID against the simulated government database and cross-checks KYC data.
     
     **Features:**
-    - ✅ NID format validation
-    - ✅ Government database lookup
-    - ✅ KYC data cross-verification
-    - ✅ Fuzzy name matching
-    - ✅ Blacklist checking
+    -  NID format validation
+    -  Government database lookup
+    -  KYC data cross-verification
+    -  Fuzzy name matching
+    -  Blacklist checking
     
     **Example Request:**
     ```json

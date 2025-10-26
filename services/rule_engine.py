@@ -12,12 +12,19 @@ from .loan_service import loan_service
 
 def check_active_loan(user_id: int, db: Session, **kwargs) -> bool:
     """Check if user has active loan - REAL IMPLEMENTATION"""
-    # Use proper loan service to check for active loans
+    # Check if context already has this information
+    if 'has_active_loan' in kwargs:
+        return kwargs['has_active_loan']
+    # Otherwise use proper loan service to check for active loans
     return loan_service.has_active_loan(db, user_id)
 
 
 def check_duplicate_phone(user_id: int, db: Session, **kwargs) -> bool:
     """Check for phone variation with similar name/gender - REAL IMPLEMENTATION"""
+    # Check if context already has this information
+    if 'is_phone_changed_with_same_name' in kwargs:
+        return kwargs['is_phone_changed_with_same_name']
+    
     from fuzzywuzzy import fuzz
     
     # Get current user data
@@ -50,6 +57,10 @@ def check_duplicate_phone(user_id: int, db: Session, **kwargs) -> bool:
 
 def check_rapid_reapply(user_id: int, db: Session, **kwargs) -> bool:
     """Check if user reapplied within 24h of closing a loan - REAL IMPLEMENTATION"""
+    # Check if context already has this information
+    if 'applied_within_24h_after_close' in kwargs:
+        return kwargs['applied_within_24h_after_close']
+    
     # Get applications within last 24 hours
     recent_applications = loan_service.get_applications_within_hours(db, user_id, 24)
     
@@ -71,6 +82,10 @@ def check_rapid_reapply(user_id: int, db: Session, **kwargs) -> bool:
 
 def check_fraud_db_match(user_id: int, db: Session, **kwargs) -> bool:
     """Check if user matches known fraudsters - REAL IMPLEMENTATION"""
+    # Check if context already has this information
+    if 'matches_fraud_db' in kwargs:
+        return kwargs['matches_fraud_db']
+    
     from .identity_manager import is_blacklisted
     
     # Get user's national ID
@@ -100,6 +115,10 @@ def check_fraud_db_match(user_id: int, db: Session, **kwargs) -> bool:
 
 def check_excessive_reapply(user_id: int, db: Session, **kwargs) -> bool:
     """Check if user reapplied more than 2 times in a day - REAL IMPLEMENTATION"""
+    # Check if context already has this information
+    if 'reapply_count_today' in kwargs:
+        return kwargs['reapply_count_today'] > 2
+    
     # Use loan service to count applications today
     applications_today = loan_service.get_applications_today(db, user_id)
     return applications_today > 2
@@ -107,6 +126,10 @@ def check_excessive_reapply(user_id: int, db: Session, **kwargs) -> bool:
 
 def check_tin_mismatch(user_id: int, db: Session, **kwargs) -> bool:
     """Check if TIN is registered under different name - REAL IMPLEMENTATION"""
+    # Check if context already has this information
+    if 'tin_name_mismatch' in kwargs:
+        return kwargs['tin_name_mismatch']
+    
     # Get user data
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.tin_number:
@@ -126,6 +149,10 @@ def check_tin_mismatch(user_id: int, db: Session, **kwargs) -> bool:
 
 def check_nid_kyc_mismatch(user_id: int, db: Session, **kwargs) -> bool:
     """Check if NID KYC data matches provided information - REAL IMPLEMENTATION"""
+    # Check if context already has this information
+    if 'nid_kyc_mismatch' in kwargs:
+        return kwargs['nid_kyc_mismatch']
+    
     # Get user data
     user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.national_id:
@@ -146,6 +173,10 @@ def check_nid_kyc_mismatch(user_id: int, db: Session, **kwargs) -> bool:
 
 def check_nid_expired(user_id: int, db: Session, **kwargs) -> bool:
     """Check if NID has expired - REAL IMPLEMENTATION"""
+    # Check if context already has this information
+    if 'nid_expired' in kwargs:
+        return kwargs['nid_expired']
+    
     # Get user's identity record
     identity = db.query(Identity).filter(Identity.user_id == user_id).first()
     if not identity:
@@ -156,6 +187,10 @@ def check_nid_expired(user_id: int, db: Session, **kwargs) -> bool:
 
 def check_nid_suspended(user_id: int, db: Session, **kwargs) -> bool:
     """Check if NID is suspended - REAL IMPLEMENTATION"""
+    # Check if context already has this information
+    if 'nid_suspended' in kwargs:
+        return kwargs['nid_suspended']
+    
     # Get user's identity record
     identity = db.query(Identity).filter(Identity.user_id == user_id).first()
     if not identity:

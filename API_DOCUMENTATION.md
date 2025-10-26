@@ -1,4 +1,4 @@
-# 🏦 Fraud Management System API Documentation
+#  Fraud Management System API Documentation
 
 ##  Overview
 
@@ -23,7 +23,7 @@ http://localhost:8000/redoc
 
 ##  API Endpoints
 
-### 🆔 NID Verification (`/nid/`)
+###  NID Verification (`/nid/`)
 
 #### `POST /nid/verify/`
 Verify National ID with government database
@@ -46,7 +46,7 @@ Generate fake NID for testing
 #### `GET /nid/validate-format/{nid}`
 Validate NID format
 
-### 🆔 TIN Verification (`/nid/tin/`)
+###  TIN Verification (`/nid/tin/`)
 
 #### `GET /nid/tin/verify/{tin_number}`
 Verify TIN with eTrade API
@@ -57,7 +57,7 @@ Get TIN details from trade ministry
 #### `GET /nid/tin/status/{tin_number}`
 Check TIN status
 
-### 👤 Identity Management (`/identity/`)
+###  Identity Management (`/identity/`)
 
 #### `POST /identity/`
 Register new identity with NID verification
@@ -198,12 +198,12 @@ The system comes with pre-seeded test data:
 - **1 Blacklist Entry** for fraud testing
 
 ### Test Scenarios
-- ✅ Normal user transactions
-- ✅ Fraud detection with expired NID
-- ✅ Fraud detection with suspended NID
-- ✅ Fraud detection with blacklisted user
-- ✅ Excessive reapply detection
-- ✅ Active loan detection
+-  Normal user transactions
+-  Fraud detection with expired NID
+-  Fraud detection with suspended NID
+-  Fraud detection with blacklisted user
+-  Excessive reapply detection
+-  Active loan detection
 
 ##  Development
 
@@ -232,7 +232,7 @@ The API returns appropriate HTTP status codes:
 - **404** - Not Found
 - **500** - Internal Server Error
 
-## 🔐 Security
+## Security
 
 - **CORS** enabled for frontend integration
 - **Input validation** on all endpoints

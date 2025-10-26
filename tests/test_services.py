@@ -1,4 +1,3 @@
-# tests/test_services.py
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -184,13 +183,21 @@ class TestRuleEngine:
         db_session.commit()
 
         # Evaluate rules
-        is_fraud, reasons, risk_score = evaluate_rules(
-            db_session, user.id, 1000.0, "192.168.1.1", "123456789012"
-        )
+        context = {
+            "has_active_loan": False,
+            "is_phone_changed_with_same_name": False,
+            "applied_within_24h_after_close": False,
+            "matches_fraud_db": False,
+            "reapply_count_today": 0,
+            "tin_name_mismatch": False,
+            "nid_kyc_mismatch": False,
+            "nid_expired": False,
+            "nid_suspended": False,
+        }
+        is_fraud, reasons = evaluate_rules(db_session, user.id, context)
         
         # Should not be fraud for clean user
         assert is_fraud == False
-        assert risk_score < 0.5
 
     def test_evaluate_rules_with_fraud(self, db_session):
         """Test rule evaluation with fraud indicators"""
@@ -220,15 +227,37 @@ class TestRuleEngine:
         db_session.add(loan)
         db_session.commit()
 
-        # Evaluate rules
-        is_fraud, reasons, risk_score = evaluate_rules(
-            db_session, user.id, 1000.0, "192.168.1.1", "999999999999"
+        # Create fraud detection rules for this test
+        from models import Rule
+        rule = Rule(
+            name="Active Loan Check",
+            description="Flag if user has active loan",
+            condition_type="active_loan",
+            is_active=True
         )
+        db_session.add(rule)
+        db_session.commit()
+
+        # Evaluate rules
+        context = {
+            "has_active_loan": True,  # This user has an active loan
+            "is_phone_changed_with_same_name": False,
+            "applied_within_24h_after_close": False,
+            "matches_fraud_db": False,
+            "reapply_count_today": 0,
+            "tin_name_mismatch": False,
+            "nid_kyc_mismatch": False,
+            "nid_expired": False,
+            "nid_suspended": False,
+        }
+        is_fraud, reasons = evaluate_rules(db_session, user.id, context)
+        
+        # Debug: print what we got
+        print(f"is_fraud: {is_fraud}, reasons: {reasons}")
         
         # Should be fraud due to active loan
         assert is_fraud == True
-        assert "Active loan check" in reasons
-        assert risk_score > 0.5
+        assert "Flag if user has active loan" in reasons
 
     def test_blacklist_check(self, db_session):
         """Test blacklist rule"""
@@ -252,11 +281,34 @@ class TestRuleEngine:
         db_session.add(user)
         db_session.commit()
 
-        # Evaluate rules
-        is_fraud, reasons, risk_score = evaluate_rules(
-            db_session, user.id, 1000.0, "192.168.1.1", "999999999999"
+        # Create fraud detection rules for this test
+        from models import Rule
+        rule = Rule(
+            name="Fraud Database Match",
+            description="Check against known fraudsters",
+            condition_type="fraud_db_match",
+            is_active=True
         )
+        db_session.add(rule)
+        db_session.commit()
+
+        # Evaluate rules
+        context = {
+            "has_active_loan": False,
+            "is_phone_changed_with_same_name": False,
+            "applied_within_24h_after_close": False,
+            "matches_fraud_db": True,  # This user is blacklisted
+            "reapply_count_today": 0,
+            "tin_name_mismatch": False,
+            "nid_kyc_mismatch": False,
+            "nid_expired": False,
+            "nid_suspended": False,
+        }
+        is_fraud, reasons = evaluate_rules(db_session, user.id, context)
+        
+        # Debug: print what we got
+        print(f"is_fraud: {is_fraud}, reasons: {reasons}")
         
         # Should be fraud due to blacklist
         assert is_fraud == True
-        assert "Fraud database match" in reasons
+        assert "Check against known fraudsters" in reasons

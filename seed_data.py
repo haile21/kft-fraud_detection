@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import random
 from database import SessionLocal
-from models import User, Identity, Loan, LoanApplication, Blacklist, Rule
+from models import User, Identity, Loan, LoanApplication, Blacklist, Rule, UserRole
 
 def seed_dummy_data():
     """Seed database with dummy data for testing"""
@@ -174,6 +174,68 @@ def seed_dummy_data():
             reason="Known fraudster - multiple fake applications"
         )
         db.add(blacklist_entry)
+        db.commit()
+        
+        # Create fraud detection rules
+        rules = [
+            Rule(
+                name="Active Loan Check",
+                description="Flag if user has active loan",
+                condition_type="active_loan",
+                is_active=True
+            ),
+            Rule(
+                name="Phone Variation Check",
+                description="Detect different phone with same name/gender",
+                condition_type="duplicate_phone",
+                is_active=True
+            ),
+            Rule(
+                name="Rapid Reapply Check",
+                description="Flag reapplications within 24h",
+                condition_type="rapid_reapply",
+                is_active=True
+            ),
+            Rule(
+                name="Fraud Database Match",
+                description="Check against known fraudsters",
+                condition_type="fraud_db_match",
+                is_active=True
+            ),
+            Rule(
+                name="Excessive Reapply Check",
+                description="Flag >2 applications/day",
+                condition_type="excessive_reapply",
+                is_active=True
+            ),
+            Rule(
+                name="TIN Mismatch Check",
+                description="Verify TIN matches registered name",
+                condition_type="tin_mismatch",
+                is_active=True
+            ),
+            Rule(
+                name="NID KYC Mismatch Check",
+                description="Cross-verify NID with KYC data",
+                condition_type="nid_kyc_mismatch",
+                is_active=True
+            ),
+            Rule(
+                name="NID Expired Check",
+                description="Flag expired NIDs",
+                condition_type="nid_expired",
+                is_active=True
+            ),
+            Rule(
+                name="NID Suspended Check",
+                description="Flag suspended NIDs",
+                condition_type="nid_suspended",
+                is_active=True
+            )
+        ]
+        
+        for rule in rules:
+            db.add(rule)
         db.commit()
         
         # Create loan applications
@@ -348,12 +410,31 @@ def seed_dummy_data():
             app3.loan_id = 2
         db.commit()
         
+        # Create user roles
+        from services.user_service import user_service
+        
+        # Create super admin role for first user
+        super_admin_role = UserRole(user_id=1, role="super_admin")
+        db.add(super_admin_role)
+        
+        # Create fraud analyst role for second user
+        fraud_analyst_role = UserRole(user_id=2, role="fraud_analyst")
+        db.add(fraud_analyst_role)
+        
+        # Create another fraud analyst role for third user
+        fraud_analyst_role2 = UserRole(user_id=3, role="fraud_analyst")
+        db.add(fraud_analyst_role2)
+        
+        db.commit()
+        
         print("✅ Dummy data seeded successfully!")
         print(f"   - {len(users)} users created")
         print(f"   - {len(identities)} identities created")
+        print(f"   - {len(rules)} fraud detection rules created")
         print(f"   - {len(loan_applications)} loan applications created")
         print(f"   - {len(loans)} loans created")
         print(f"   - 1 blacklist entry created")
+        print(f"   - 3 user roles created (1 super admin, 2 fraud analysts)")
         
     except Exception as e:
         print(f"❌ Error seeding data: {e}")

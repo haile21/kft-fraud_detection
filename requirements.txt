@@ -8,3 +8,7 @@ python-dotenv #We use python-dotenv to manage secrets
 psycopg2-binary
 fuzzywuzzy[speedup] # Fuzzy string matching for name verification
 requests # HTTP client for external API calls
+pytest
+httpx
+python-jose[cryptography] # JWT token handling
+passlib[bcrypt] # Password hashing

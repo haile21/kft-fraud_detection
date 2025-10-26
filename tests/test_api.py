@@ -87,7 +87,8 @@ class TestTransactionAPI:
         })
         assert response.status_code == 403
         data = response.json()
-        assert data["is_fraud"] == True
+        assert "detail" in data
+        assert "Fraud detected" in data["detail"]
 
 class TestRulesAPI:
     def test_list_rules(self, client):

@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
+
 
 from database import SessionLocal
 from schemas import TransactionRequest, FraudResponse
@@ -16,7 +18,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/", response_model=FraudResponse)
+@router.post("", response_model=FraudResponse)
 def check_transaction(
     request: TransactionRequest,
     national_id: str,
@@ -76,7 +78,10 @@ def check_transaction(
     )
     
     if is_fraud:
-        raise HTTPException(status_code=403, detail=reason)
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Fraud detected: {reason}"
+        )
     
     return {
         "is_fraud": False, 

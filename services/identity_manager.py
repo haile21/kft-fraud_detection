@@ -6,6 +6,9 @@ from .tin_service import tin_service
 def get_identity_by_national_id(db: Session, nid: str):
     return db.query(Identity).filter(Identity.national_id == nid).first()
 
+def get_identity_list(db: Session):
+    return db.query(Identity).all()
+
 def is_blacklisted(db: Session, nid: str):
     return db.query(Blacklist).filter(Blacklist.national_id == nid).first() is not None
 

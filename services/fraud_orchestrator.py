@@ -71,5 +71,15 @@ def assess_fraud_risk(db: Session, user_id: int, amount: float, ip_address: str,
     )
     db.add(log)
     db.commit()
+    db.refresh(log)
+
+    # 6. Create alert if fraud is detected
+    if is_fraud:
+        from .alert_service import alert_service
+        try:
+            alert_service.create_alert_from_fraud_log(db, log.id)
+        except Exception as e:
+            # Log error but don't fail the transaction
+            print(f"Failed to create alert: {e}")
 
     return is_fraud, "; ".join(reasons) if reasons else "Approved", risk_score

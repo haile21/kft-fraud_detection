@@ -133,3 +133,136 @@ class LoanResponse(BaseModel):
     remaining_balance: Optional[float] = None
     is_active: bool
     rejection_reason: Optional[str] = None
+
+# Alert and Case Management Schemas
+class AlertResponse(BaseModel):
+    id: int
+    fraud_log_id: int
+    user_id: int
+    alert_type: str
+    severity: str
+    status: str
+    assigned_to: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    description: Optional[str] = None
+    fraud_reason: Optional[str] = None
+    risk_score: Optional[float] = None
+
+class AlertCreate(BaseModel):
+    fraud_log_id: int
+    user_id: int
+    alert_type: str
+    severity: str = 'medium'
+    description: Optional[str] = None
+    fraud_reason: Optional[str] = None
+    risk_score: Optional[float] = None
+
+class AlertUpdate(BaseModel):
+    status: Optional[str] = None
+    assigned_to: Optional[int] = None
+    description: Optional[str] = None
+
+class CaseResponse(BaseModel):
+    id: int
+    alert_id: int
+    case_number: str
+    title: str
+    description: Optional[str] = None
+    status: str
+    priority: str
+    assigned_to: Optional[int] = None
+    created_by: int
+    created_at: datetime
+    updated_at: datetime
+    closed_at: Optional[datetime] = None
+    resolution_notes: Optional[str] = None
+
+class CaseCreate(BaseModel):
+    alert_id: int
+    title: str
+    description: Optional[str] = None
+    priority: str = 'medium'
+    assigned_to: Optional[int] = None
+
+class CaseUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    assigned_to: Optional[int] = None
+    resolution_notes: Optional[str] = None
+
+class CaseFollowUpCreate(BaseModel):
+    case_id: int
+    follow_up_type: str
+    notes: str
+
+class CaseFollowUpResponse(BaseModel):
+    id: int
+    case_id: int
+    created_by: int
+    follow_up_type: str
+    notes: str
+    created_at: datetime
+
+# User and Authentication Schemas
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    first_name: str
+    last_name: str
+    gender: Optional[str] = None
+    phone_number: Optional[str] = None
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    first_name: str
+    last_name: str
+    gender: Optional[str] = None
+    phone_number: Optional[str] = None
+    national_id: Optional[str] = None
+    tin_number: Optional[str] = None
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class UserRoleCreate(BaseModel):
+    user_id: int
+    role: str  # super_admin, fraud_analyst
+
+class UserRoleResponse(BaseModel):
+    id: int
+    user_id: int
+    role: str
+    created_at: datetime
+
+# ML Fraud Detection Schemas
+class TransactionInput(BaseModel):
+    V: list[float]  # 28 V features
+    Time: float
+    Amount: float
+
+class MLPredictionResponse(BaseModel):
+    is_fraud: bool
+    is_anomaly: bool
+    anomaly_score: float
+    risk_level: str
+    explanation: str
+    confidence: str
+    transaction_index: int
+
+class FraudDecisionResponse(BaseModel):
+    decision: str  # "allow", "block", or "review"
+    fraud_risk: str  # "Low", "Medium", "High", "Critical"
+    anomaly_score: float
+    explanation: str
+    recommendation: str

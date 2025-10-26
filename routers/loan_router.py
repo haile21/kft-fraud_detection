@@ -23,7 +23,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/applications/", response_model=LoanApplicationResponse)
+@router.post("/applications", response_model=LoanApplicationResponse)
 def create_loan_application(
     application: LoanApplicationCreate, 
     db: Session = Depends(get_db)
@@ -34,10 +34,10 @@ def create_loan_application(
     Creates a new loan application with comprehensive fraud detection.
     
     **Process:**
-    1. ✅ **Fraud Check** - Automatically runs fraud detection
-    2. ✅ **NID Verification** - Validates user identity
-    3. ✅ **TIN Verification** - Cross-checks TIN with eTrade API
-    4. ✅ **Application Creation** - Stores application in database
+    1.  **Fraud Check** - Automatically runs fraud detection
+    2.  **NID Verification** - Validates user identity
+    3.  **TIN Verification** - Cross-checks TIN with eTrade API
+    4.  **Application Creation** - Stores application in database
     
     **Example Request:**
     ```json

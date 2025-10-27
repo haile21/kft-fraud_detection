@@ -64,6 +64,85 @@ def get_current_user_id(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+# Authentication dependency - extracts user ID and roles from JWT token
+def get_current_user_info(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> dict:
+    """Extract user ID and roles from JWT token"""
+    from jose import jwt
+    from jose.exceptions import JWTError
+    
+    token = credentials.credentials
+    
+    try:
+        # Decode JWT token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("user_id")
+        roles: list = payload.get("roles", [])
+        username: str = payload.get("username")
+        email: str = payload.get("email")
+        
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Verify user exists
+        user = user_service.get_user_by_id(db, user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        return {
+            "user_id": user_id,
+            "roles": roles,
+            "username": username,
+            "email": email
+        }
+        
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+# Role-based authentication dependencies
+def require_role(required_role: str):
+    """Create a dependency that requires a specific role"""
+    def role_checker(user_info: dict = Depends(get_current_user_info)):
+        if required_role not in user_info["roles"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required role: {required_role}"
+            )
+        return user_info
+    return role_checker
+
+def require_super_admin(user_info: dict = Depends(get_current_user_info)):
+    """Require super admin role"""
+    if "super_admin" not in user_info["roles"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Super admin role required"
+        )
+    return user_info
+
+def require_fraud_analyst(user_info: dict = Depends(get_current_user_info)):
+    """Require fraud analyst role"""
+    if "fraud_analyst" not in user_info["roles"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Fraud analyst role required"
+        )
+    return user_info
+
 @router.post("/register", response_model=UserResponse)
 def register_user(
     user_data: UserCreate,
@@ -89,7 +168,7 @@ def login_user(
     user_credentials: UserLogin,
     db: Session = Depends(get_db)
 ):
-    """Login user and return JWT token"""
+    """Login user and return JWT token with role information"""
     user = user_service.authenticate_user(
         db, user_credentials.username, user_credentials.password
     )
@@ -100,9 +179,18 @@ def login_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # Get user roles
+    user_roles = user_service.get_user_role_names(db, user.id)
+    
     access_token_expires = timedelta(minutes=30)
     access_token = user_service.create_access_token(
-        data={"sub": user.username, "user_id": user.id}, 
+        data={
+            "sub": user.username, 
+            "user_id": user.id,
+            "roles": user_roles,
+            "username": user.username,
+            "email": user.email
+        }, 
         expires_delta=access_token_expires
     )
     
@@ -128,18 +216,29 @@ def get_current_user(
         )
     return user
 
+@router.get(
+    "/me/info",
+    summary="Get current user info with roles",
+    description="Get the currently authenticated user's information including roles",
+    responses={401: {"description": "Not authenticated"}}
+)
+def get_current_user_with_roles(
+    user_info: dict = Depends(get_current_user_info)
+):
+    """Get current user information including roles"""
+    return {
+        "user_id": user_info["user_id"],
+        "username": user_info["username"],
+        "email": user_info["email"],
+        "roles": user_info["roles"]
+    }
+
 @router.get("", response_model=List[UserResponse])
 def get_all_users(
     db: Session = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id)
+    user_info: dict = Depends(require_super_admin)
 ):
     """Get all users (Super Admin only)"""
-    if not user_service.is_super_admin(db, current_user_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only super admins can view all users"
-        )
-    
     users = user_service.get_all_users(db)
     return users
 

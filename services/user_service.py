@@ -152,6 +152,11 @@ class UserService:
         """Get all roles for a user"""
         return db.query(UserRole).filter(UserRole.user_id == user_id).all()
     
+    def get_user_role_names(self, db: Session, user_id: int) -> List[str]:
+        """Get user role names as a list of strings"""
+        roles = self.get_user_roles(db, user_id)
+        return [role.role for role in roles]
+    
     def has_role(self, db: Session, user_id: int, role: str) -> bool:
         """Check if user has a specific role"""
         user_role = db.query(UserRole).filter(

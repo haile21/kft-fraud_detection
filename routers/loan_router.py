@@ -29,15 +29,27 @@ def create_loan_application(
     db: Session = Depends(get_db)
 ):
     """
-     Create Loan Application
+     Create Loan Application with Comprehensive Fraud Detection
     
-    Creates a new loan application with comprehensive fraud detection.
+    Creates a new loan application with comprehensive fraud detection using the same rules as the Transaction API.
     
     **Process:**
-    1.  **Fraud Check** - Automatically runs fraud detection
+    1.  **Fraud Check** - Automatically runs comprehensive fraud detection
     2.  **NID Verification** - Validates user identity
     3.  **TIN Verification** - Cross-checks TIN with eTrade API
-    4.  **Application Creation** - Stores application in database
+    4.  **Rule Engine** - Applies 9 configurable fraud detection rules
+    5.  **Application Creation** - Stores application in database (only if fraud check passes)
+    
+    **Fraud Detection Rules Applied:**
+    1. ✅ **Active Loan Check** - Flag if user has active loan
+    2. ✅ **Phone Variation** - Detect different phone with same name/gender
+    3. ✅ **Rapid Reapply** - Flag reapplications within 24h
+    4. ✅ **Fraud DB Match** - Check against known fraudsters
+    5. ✅ **Excessive Reapply** - Flag >2 applications/day
+    6. ✅ **TIN Mismatch** - Verify TIN matches registered name
+    7. ✅ **NID KYC Mismatch** - Cross-verify NID with KYC data
+    8. ✅ **NID Expired** - Flag expired NIDs
+    9. ✅ **NID Suspended** - Flag suspended NIDs
     
     **Example Request:**
     ```json
@@ -47,11 +59,13 @@ def create_loan_application(
         "loan_purpose": "Business expansion",
         "employment_status": "employed",
         "monthly_income": 15000.0,
-        "ip_address": "192.168.1.100"
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "national_id": "123456789012"
     }
     ```
     
-    **Example Response:**
+    **Example Response (Success):**
     ```json
     {
         "id": 1,
@@ -64,6 +78,13 @@ def create_loan_application(
         "status": "pending"
     }
     ```
+    
+    **Example Response (Fraud Detected):**
+    ```json
+    {
+        "detail": "Loan application rejected due to fraud detection: NID expired; Active loan check"
+    }
+    ```
     """
     try:
         new_application = loan_service.create_loan_application(
@@ -74,9 +95,13 @@ def create_loan_application(
             employment_status=application.employment_status,
             monthly_income=application.monthly_income,
             ip_address=application.ip_address,
-            user_agent=application.user_agent
+            user_agent=application.user_agent,
+            national_id=application.national_id
         )
         return new_application
+    except HTTPException as e:
+        # Re-raise HTTP exceptions (fraud detection failures)
+        raise e
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

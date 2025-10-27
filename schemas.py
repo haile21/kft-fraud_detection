@@ -84,6 +84,7 @@ class LoanApplicationCreate(BaseModel):
     monthly_income: Optional[float] = None
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
+    national_id: str  # Required for fraud detection
     
     class Config:
         schema_extra = {
@@ -94,7 +95,8 @@ class LoanApplicationCreate(BaseModel):
                 "employment_status": "employed",
                 "monthly_income": 15000.0,
                 "ip_address": "192.168.1.100",
-                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "national_id": "123456789012"
             }
         }
 

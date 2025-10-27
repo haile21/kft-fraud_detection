@@ -145,7 +145,9 @@ class TestLoanAPI:
             "loan_purpose": "Business expansion",
             "employment_status": "employed",
             "monthly_income": 15000.0,
-            "ip_address": "192.168.1.100"
+            "ip_address": "192.168.1.100",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "national_id": "123456789012"  # Required for fraud detection
         })
         assert response.status_code in [200, 403]  # 200 for approved, 403 for fraud
 

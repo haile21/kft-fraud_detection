@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
+from fastapi import HTTPException
 from models import Loan, LoanApplication, User
 
 class LoanService:
@@ -63,8 +64,25 @@ class LoanService:
     def create_loan_application(self, db: Session, user_id: int, amount: float, 
                               purpose: str = None, employment_status: str = None,
                               monthly_income: float = None, ip_address: str = None,
-                              user_agent: str = None) -> LoanApplication:
-        """Create a new loan application"""
+                              user_agent: str = None, national_id: str = None) -> LoanApplication:
+        """Create a new loan application with fraud detection"""
+        
+        # 1. Run comprehensive fraud detection
+        if national_id:
+            from .fraud_orchestrator import assess_fraud_risk
+            
+            is_fraud, reason, risk_score = assess_fraud_risk(
+                db, user_id, amount, ip_address, national_id
+            )
+            
+            # If fraud is detected, raise an exception
+            if is_fraud:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Loan application rejected due to fraud detection: {reason}"
+                )
+        
+        # 2. Create the loan application
         application = LoanApplication(
             user_id=user_id,
             application_amount=amount,

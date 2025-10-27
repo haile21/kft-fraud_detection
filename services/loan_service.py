@@ -23,6 +23,10 @@ class LoanService:
     def get_user_loans(self, db: Session, user_id: int) -> List[Loan]:
         """Get all loans for a user"""
         return db.query(Loan).filter(Loan.user_id == user_id).all()
+        
+    def get_all_loans(self, db: Session) -> List[Loan]:
+        """Get all loans"""
+        return db.query(Loan).all()    
     
     def get_active_loans(self, db: Session, user_id: int) -> List[Loan]:
         """Get active loans for a user"""

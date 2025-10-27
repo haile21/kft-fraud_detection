@@ -29,7 +29,7 @@ def create_loan_application(
     db: Session = Depends(get_db)
 ):
     """
-    📝 Create Loan Application
+     Create Loan Application
     
     Creates a new loan application with comprehensive fraud detection.
     
@@ -135,6 +135,12 @@ def get_user_loans(user_id: int, db: Session = Depends(get_db)):
     """Get all loans for a user"""
     from models import Loan
     loans = db.query(Loan).filter(Loan.user_id == user_id).all()
+    return loans
+
+@router.get("/all", response_model=List[LoanResponse])
+def get_all_loans(db: Session = Depends(get_db)):
+    """Get all loans"""
+    loans = loan_service.get_all_loans(db)
     return loans
 
 @router.get("/user/{user_id}/active", response_model=List[LoanResponse])
